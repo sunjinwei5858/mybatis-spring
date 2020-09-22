@@ -15,8 +15,6 @@
  */
 package org.mybatis.spring;
 
-import static org.springframework.util.Assert.notNull;
-
 import org.apache.ibatis.exceptions.PersistenceException;
 import org.apache.ibatis.mapping.Environment;
 import org.apache.ibatis.session.ExecutorType;
@@ -31,6 +29,8 @@ import org.springframework.dao.support.PersistenceExceptionTranslator;
 import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import static org.springframework.util.Assert.notNull;
 
 /**
  * Handles MyBatis SqlSession life cycle. It can register and get SqlSessions from Spring
@@ -71,8 +71,9 @@ public final class SqlSessionUtils {
   }
 
   /**
-   * Gets an SqlSession from Spring Transaction Manager or creates a new one if needed. Tries to get a SqlSession out of
-   * current transaction. If there is not any, it creates a new one. Then, it synchronizes the SqlSession with the
+   * Gets an SqlSession from Spring Transaction Manager or creates a new one if needed.
+   * Tries to get a SqlSession out of current transaction.
+   * If there is not any, it creates a new one. Then, it synchronizes the SqlSession with the
    * transaction if Spring TX is active and <code>SpringManagedTransactionFactory</code> is configured as a transaction
    * manager.
    *
