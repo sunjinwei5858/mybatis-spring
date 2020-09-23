@@ -17,6 +17,7 @@ package org.mybatis.spring.mapper;
 
 import org.apache.ibatis.executor.ErrorContext;
 import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.SqlSession;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.support.SqlSessionDaoSupport;
 import org.springframework.beans.factory.FactoryBean;
@@ -24,8 +25,12 @@ import org.springframework.beans.factory.FactoryBean;
 import static org.springframework.util.Assert.notNull;
 
 /**
- * BeanFactory that enables injection of MyBatis mapper interfaces. It can be set up with a SqlSessionFactory or a
- * pre-configured SqlSessionTemplate.
+ * mybatis的mapper接口和sqlSessionFactory都是通过实现FactoryBean接口，前者是泛型FactoryBean<T>，后者直接是FactoryBean<SqlSessionFactory>
+ * 这样就可以注入多个mappers,还可以设置SqlSessionFactory属性
+ * <p>
+ * <p>
+ * BeanFactory that enables injection of MyBatis mapper interfaces.
+ * It can be set up with a SqlSessionFactory or a pre-configured SqlSessionTemplate.
  * <p>
  * Sample configuration:
  *
@@ -48,11 +53,12 @@ import static org.springframework.util.Assert.notNull;
  * Note that this factory can only inject <em>interfaces</em>, not concrete classes.
  *
  * @author Eduardo Macarron
- *
  * @see SqlSessionTemplate
  */
+//继承SqlSessionDaoSupport、实现FactoryBean，那么最终注入Spring容器的对象要从getObject()中取
 public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements FactoryBean<T> {
 
+    // 这里其实就是mapper接口 使用这种将mapper传进来 这样MapperFactoryBean就不需要加@component注解 ！！！！ 奇妙
     private Class<T> mapperInterface;
 
     private boolean addToConfig = true;
@@ -61,7 +67,11 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
         // intentionally empty
     }
 
+    //构造器，在BeanDefinition中已经设置了构造器输入参数
+    //所以在通过反射调用构造器实例化时，会获取在BeanDefinition设置的构造器输入参数
+    //也就是对应得每个Mapper接口Class
     public MapperFactoryBean(Class<T> mapperInterface) {
+        System.out.println("4--MapperFactoryBean构造初始化----" + mapperInterface);
         this.mapperInterface = mapperInterface;
     }
 
@@ -88,12 +98,20 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
     }
 
     /**
+     * 最终注入Spring容器的就是这里的返回对象
+     * <p>
      * 这里进行获取mapper，通过抽象父类SqlSessionDaoSupport的getSqlSession
      * {@inheritDoc}
      */
     @Override
     public T getObject() throws Exception {
-        return getSqlSession().getMapper(this.mapperInterface);
+        //获取父类setSqlSessionFactory方法中创建的SqlSessionTemplate
+        //通过SqlSessionTemplate获取mapperInterface的代理类
+        //获取到Mapper接口的代理类后，就把这个Mapper的代理类对象注入Spring容器
+        SqlSession sqlSession = getSqlSession();
+        T mapper = sqlSession.getMapper(this.mapperInterface);
+        System.out.println("4--MapperFactoryBean执行getObject()方法--" + mapper);
+        return mapper;
     }
 
     /**
@@ -117,8 +135,7 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
     /**
      * Sets the mapper interface of the MyBatis mapper
      *
-     * @param mapperInterface
-     *          class of the interface
+     * @param mapperInterface class of the interface
      */
     public void setMapperInterface(Class<T> mapperInterface) {
         this.mapperInterface = mapperInterface;
@@ -141,8 +158,7 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
      * <p>
      * By default addToConfig is true.
      *
-     * @param addToConfig
-     *          a flag that whether add mapper to MyBatis or not
+     * @param addToConfig a flag that whether add mapper to MyBatis or not
      */
     public void setAddToConfig(boolean addToConfig) {
         this.addToConfig = addToConfig;

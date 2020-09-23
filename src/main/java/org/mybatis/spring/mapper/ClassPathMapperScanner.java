@@ -189,14 +189,14 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
     }
 
     /**
-     * 重写了父类的doScan()方法
+     * 重写了父类的doScan()方法，这里将mapper接口的bean定义进行注册.MapperFactoryBeans
      * <p>
      * Calls the parent search that will search and register all the candidates.
-     * Then the registered objects are post
-     * processed to set them as MapperFactoryBeans
+     * Then the registered objects are post processed to set them as MapperFactoryBeans
      */
     @Override
     public Set<BeanDefinitionHolder> doScan(String... basePackages) {
+        // 这里调用父类ClassPathBeanDefinitionScanner进行将mapper接口进行扫描生成代理对象
         Set<BeanDefinitionHolder> beanDefinitions = super.doScan(basePackages);
 
         if (beanDefinitions.isEmpty()) {
@@ -210,9 +210,15 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
         return beanDefinitions;
     }
 
+    /**
+     * 对bean定义的属性做一些处理
+     *
+     * @param beanDefinitions
+     */
     private void processBeanDefinitions(Set<BeanDefinitionHolder> beanDefinitions) {
         AbstractBeanDefinition definition;
         BeanDefinitionRegistry registry = getRegistry();
+
         for (BeanDefinitionHolder holder : beanDefinitions) {
             definition = (AbstractBeanDefinition) holder.getBeanDefinition();
             boolean scopedProxy = false;
@@ -229,9 +235,23 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
             // the mapper interface is the original class of the bean
             // but, the actual class of the bean is MapperFactoryBean
-            definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName); // issue #59
-            definition.setBeanClass(this.mapperFactoryBeanClass);
 
+            // 设置definition构造器的输入参数为definition.getBeanClassName()，这里就是org.mybatis.test.mapper
+            // 那么在getBean实例化时，通过反射调用构造器实例化时要将这个参数传进去
+            definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName); // issue #59
+
+            /**
+             * https://blog.csdn.net/weixin_45714179/article/details/103026370?utm_medium=distribute.pc_relevant.none-task-blog-title-2&spm=1001.2101.3001.4242
+             *
+             * 这里非常关键！！！ 在这里进行偷天换日 因为MapperFactoryBean实现了FactoryBean，
+             * // 修改definition对应的Class
+             * // 看过Spring源码的都知道，getBean()返回的就是BeanDefinitionHolder中beanClass属性对应的实例
+             * // 所以我们后面ac.getBean(UserMapper.class)的返回值也就是MapperFactoryBean的实例
+             * // 但是最终被注入到Spring容器的对象的并不是MapperFactoryBean的实例，根据名字看，我们就知道MapperFactoryBean实现了FactoryBean接口
+             * // 那么最终注入Spring容器的必定是从MapperFactoryBean的实例的getObject()方法中返回
+             */
+            definition.setBeanClass(this.mapperFactoryBeanClass);
+            // definition.setBeanClass(UserMappper.class); // 不能使用UserMappper
             definition.getPropertyValues().add("addToConfig", this.addToConfig);
 
             boolean explicitFactoryUsed = false;
@@ -240,6 +260,9 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
                         new RuntimeBeanReference(this.sqlSessionFactoryBeanName));
                 explicitFactoryUsed = true;
             } else if (this.sqlSessionFactory != null) {
+                //往definition设置属性值sqlSessionFactory，那么在MapperFactoryBean实例化后，
+                // 进行属性赋值时populateBean(beanName, mbd, instanceWrapper);，会通过反射调用sqlSessionFactory的set方法进行赋值
+                //也就是在MapperFactoryBean创建实例后，要调用setSqlSessionFactory方法将sqlSessionFactory注入进MapperFactoryBean实例
                 definition.getPropertyValues().add("sqlSessionFactory", this.sqlSessionFactory);
                 explicitFactoryUsed = true;
             }
@@ -275,7 +298,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             if (ConfigurableBeanFactory.SCOPE_SINGLETON.equals(definition.getScope()) && defaultScope != null) {
                 definition.setScope(defaultScope);
             }
-
+            // 如果不是单例
             if (!definition.isSingleton()) {
                 BeanDefinitionHolder proxyHolder = ScopedProxyUtils.createScopedProxy(holder, registry, true);
                 if (registry.containsBeanDefinition(proxyHolder.getBeanName())) {

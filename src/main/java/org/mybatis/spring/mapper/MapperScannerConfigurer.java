@@ -341,6 +341,7 @@ public class MapperScannerConfigurer
             // 系统初始化时会调用
             processPropertyPlaceHolders();
         }
+        System.out.println("2--MapperScannerConfigurer--执行postProcessBeanDefinitionRegistry--ClassPathMapperScanner--开始scan--begin");
         // 创建ClassPathMapperScanner对象
         ClassPathMapperScanner scanner = new ClassPathMapperScanner(registry);
         scanner.setAddToConfig(this.addToConfig);
@@ -366,6 +367,7 @@ public class MapperScannerConfigurer
 
     /**
      * !!!!! 这段注释说明了bean定义注册会在系统初始化之前被调用，在BeanFactoryPostProcessors
+     *
      * BeanDefinitionRegistries are called early in application startup, before BeanFactoryPostProcessors. This means that
      * PropertyResourceConfigurers will not have been loaded and any property substitution of this class' properties will
      * fail. To avoid this, find any PropertyResourceConfigurers defined in the context and run them on this class' bean

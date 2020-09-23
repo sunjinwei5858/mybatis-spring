@@ -40,6 +40,9 @@ public abstract class SqlSessionDaoSupport extends DaoSupport {
     private SqlSessionTemplate sqlSessionTemplate;
 
     /**
+     * //还记得往BeanDefinition中设置的sqlSessionFactory这个属性吗？
+     * //在实例化MapperFactoryBean后，进行属性赋值时，就会通过反射调用setSqlSessionFactory
+     * <p>
      * Set MyBatis SqlSessionFactory to be used by this DAO. Will automatically create SqlSessionTemplate for the given
      * SqlSessionFactory.
      *
@@ -47,6 +50,7 @@ public abstract class SqlSessionDaoSupport extends DaoSupport {
      */
     public void setSqlSessionFactory(SqlSessionFactory sqlSessionFactory) {
         if (this.sqlSessionTemplate == null || sqlSessionFactory != this.sqlSessionTemplate.getSqlSessionFactory()) {
+            //创建一个SqlSessionTemplate并赋值给sqlSession
             this.sqlSessionTemplate = createSqlSessionTemplate(sqlSessionFactory);
         }
     }

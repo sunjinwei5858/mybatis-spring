@@ -34,6 +34,13 @@ import static org.mybatis.spring.SqlSessionUtils.*;
 import static org.springframework.util.Assert.notNull;
 
 /**
+ * 问题1：
+ * SqlSessionTemplate是如何保证线程安全的？mybatis默认的sqlSession不是线程安全的，需要每个线程有一个单例的对象实例。
+ * 问题2：
+ * 具体的SqlSession的功能，则是通过内部包含的sqlSessionProxy来实现，这也是静态代理的一种实现。
+ * 同时内部的sqlSessionProxy实现InvocationHandler接口，则是动态代理的一种实现，而线程安全也是在这里实现的。
+ * SqlSession的主要作用是提供SQL操作的API，执行指定的SQL语句，mapper需要依赖SqlSession来执行其方法对应的SQL。
+ * <p>
  * Thread safe, Spring managed, {@code SqlSession} that works with Spring transaction management to ensure that that the
  * actual SqlSession used is the one associated with the current Spring transaction. In addition, it manages the session
  * life-cycle, including closing, committing or rolling back the session as necessary based on the Spring transaction
@@ -60,7 +67,6 @@ import static org.springframework.util.Assert.notNull;
  * @author Putthiphong Boonphong
  * @author Hunter Presnall
  * @author Eduardo Macarron
- *
  * @see SqlSessionFactory
  * @see MyBatisExceptionTranslator
  */
@@ -70,6 +76,13 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
 
     private final ExecutorType executorType;
 
+    /**
+     * 具体的SqlSession的功能，则是通过内部包含的sqlSessionProxy来实现，这也是静态代理的一种实现。
+     * 一个代理类，由于SqlSessionTemplate是单例，被所有mapper 所有线程共享
+     * sqlSessionProxy的实现方式也是实现了InvocationHandler接口实现了动态代理
+     * 根据动态代理可知，invoke方法会拦截所有mapper的所有方法调用
+     * 所以这里的实现方式是在invoke方法内部创建一个sqlSession局部变量，从而实现了每个mapper的每个方法调用都使用
+     */
     private final SqlSession sqlSessionProxy;
 
     private final PersistenceExceptionTranslator exceptionTranslator;
@@ -77,8 +90,7 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
     /**
      * Constructs a Spring managed SqlSession with the {@code SqlSessionFactory} provided as an argument.
      *
-     * @param sqlSessionFactory
-     *          a factory of SqlSession
+     * @param sqlSessionFactory a factory of SqlSession
      */
     public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory) {
         this(sqlSessionFactory, sqlSessionFactory.getConfiguration().getDefaultExecutorType());
@@ -88,14 +100,15 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
      * Constructs a Spring managed SqlSession with the {@code SqlSessionFactory} provided as an argument and the given
      * {@code ExecutorType} {@code ExecutorType} cannot be changed once the {@code SqlSessionTemplate} is constructed.
      *
-     * @param sqlSessionFactory
-     *          a factory of SqlSession
-     * @param executorType
-     *          an executor type on session
+     * @param sqlSessionFactory a factory of SqlSession
+     * @param executorType      an executor type on session
      */
     public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory, ExecutorType executorType) {
-        this(sqlSessionFactory, executorType,
-                new MyBatisExceptionTranslator(sqlSessionFactory.getConfiguration().getEnvironment().getDataSource(), true));
+        this(
+                sqlSessionFactory,
+                executorType,
+                new MyBatisExceptionTranslator(sqlSessionFactory.getConfiguration().getEnvironment().getDataSource(), true)
+        );
     }
 
     /**
@@ -104,15 +117,15 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
      * MyBatis can be custom translated to a {@code RuntimeException} The {@code SQLExceptionTranslator} can also be null
      * and thus no exception translation will be done and MyBatis exceptions will be thrown
      *
-     * @param sqlSessionFactory
-     *          a factory of SqlSession
-     * @param executorType
-     *          an executor type on session
-     * @param exceptionTranslator
-     *          a translator of exception
+     * @param sqlSessionFactory   a factory of SqlSession
+     * @param executorType        an executor type on session
+     * @param exceptionTranslator a translator of exception
      */
-    public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory, ExecutorType executorType,
-                              PersistenceExceptionTranslator exceptionTranslator) {
+    public SqlSessionTemplate(
+            SqlSessionFactory sqlSessionFactory,
+            ExecutorType executorType,
+            PersistenceExceptionTranslator exceptionTranslator
+    ) {
 
         notNull(sqlSessionFactory, "Property 'sqlSessionFactory' is required");
         notNull(executorType, "Property 'executorType' is required");
@@ -141,6 +154,9 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
      */
     @Override
     public <T> T selectOne(String statement) {
+        //SqlSessionTemplate在内部访问数据库时，其实是委派给sqlSessionProxy来执行数据库操作的，
+        // SqlSessionTemplate不是自身重新实现了一套mybatis数据库访问的逻辑。
+        // SqlSessionTemplate通过静态代理机制来提供SqlSession接口的行为，即实现SqlSession接口来获取SqlSession的所有方法
         return this.sqlSessionProxy.selectOne(statement);
     }
 
@@ -354,7 +370,6 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
 
     /**
      * {@inheritDoc}
-     *
      */
     @Override
     public Configuration getConfiguration() {
@@ -373,7 +388,6 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
      * {@inheritDoc}
      *
      * @since 1.0.2
-     *
      */
     @Override
     public List<BatchResult> flushStatements() {
@@ -391,7 +405,7 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
      * </bean>
      * }
      * </pre>
-     *
+     * <p>
      * The implementation of {@link DisposableBean} forces spring context to use {@link DisposableBean#destroy()} method
      * instead of {@link SqlSessionTemplate#close()} to shutdown gently.
      *
@@ -406,6 +420,9 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
     }
 
     /**
+     * ！！！！ 如何保证SqlSessionTemplate是线程安全的，其实真正执行sql的是sqlSessionProxy代理，
+     * 这里使用sqlSession局部变量来保证线程私有
+     * <p>
      * Proxy needed to route MyBatis method calls to the proper SqlSession got from Spring's Transaction Manager It also
      * unwraps exceptions thrown by {@code Method#invoke(Object, Object...)} to pass a {@code PersistenceException} to the
      * {@code PersistenceExceptionTranslator}.
@@ -413,11 +430,20 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
     private class SqlSessionInterceptor implements InvocationHandler {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            SqlSession sqlSession = getSqlSession(SqlSessionTemplate.this.sqlSessionFactory,
-                    SqlSessionTemplate.this.executorType, SqlSessionTemplate.this.exceptionTranslator);
+            // 获取一个sqlSession来执行proxy的method对应的SQL,
+            // 每次调用都获取创建一个sqlSession线程局部变量，故不同线程相互不影响，在这里实现了SqlSessionTemplate的线程安全性
+            SqlSession sqlSession = SqlSessionUtils.getSqlSession(
+                    SqlSessionTemplate.this.sqlSessionFactory,
+                    SqlSessionTemplate.this.executorType,
+                    SqlSessionTemplate.this.exceptionTranslator
+            );
             try {
+                //直接通过新创建的SqlSession反射调用method
+                //这也就解释了为什么不需要目标类属性了，这里每次都会创建一个
                 Object result = method.invoke(sqlSession, args);
-                // 如果是同一个事务 那么sqlsession是共享的 不好进行commit 关闭会话
+                //判断是否加了事务 如果加了事务，则不需要手动commit
+                // 如果当前业务没有使用@Transation,那么每次执行了Mapper接口的方法直接commit
+                // 还记得纯Mybatis的一级缓存吗，这里一级缓存不能起作用了，因为每执行一个Mapper的方法，sqlSession都提交了，sqlSession提交，会清空一级缓存
                 if (!isSqlSessionTransactional(sqlSession, SqlSessionTemplate.this.sqlSessionFactory)) {
                     // force commit even on non-dirty sessions because some databases require
                     // a commit/rollback before calling close()

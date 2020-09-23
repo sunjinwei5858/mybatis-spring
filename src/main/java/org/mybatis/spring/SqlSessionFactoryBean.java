@@ -460,11 +460,12 @@ public class SqlSessionFactoryBean implements FactoryBean<SqlSessionFactory>, In
         notNull(sqlSessionFactoryBuilder, "Property 'sqlSessionFactoryBuilder' is required");
         state((configuration == null && configLocation == null) || !(configuration != null && configLocation != null),
                 "Property 'configuration' and 'configLocation' can not specified with together");
-        System.out.println("执行afterPropertiesSet方法了======");
+        System.out.println("3--SqlSessionFactoryBean---执行afterPropertiesSet方法--创建SqlSessionFactory");
         this.sqlSessionFactory = buildSqlSessionFactory();
     }
 
     /**
+     * 初始化SqlSessionFactory对象 并交给spring容器
      * Build a {@code SqlSessionFactory} instance.
      * <p>
      * The default implementation uses the standard MyBatis {@code XMLConfigBuilder} API to build a
@@ -598,6 +599,9 @@ public class SqlSessionFactoryBean implements FactoryBean<SqlSessionFactory>, In
 
     /**
      * SqlSessionFactoryBean 同时实现了 FactoryBean 接口，重写了 getObject() 方法，该方法返回 DefaultSqlSessionFactory 对象。
+     * 当使用容器获取SqlSessionFactoryBean的时候，返回的是sqlSessionFactory，就是因为该类实现了FactoryBean
+     * applicationContext.getBean("sqlSessionFactoryBean")===>sqlSessionFactory
+     * 需要加上&,才会返回这个实现类本身  applicationContext.getBean("&sqlSessionFactoryBean")===>sqlSessionFactoryBean
      * {@inheritDoc}
      */
     @Override
