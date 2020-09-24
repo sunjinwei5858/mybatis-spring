@@ -207,7 +207,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             processBeanDefinitions(beanDefinitions);
         }
 
-        return beanDefinitions;
+        return beanDefinitions; // (userMapper, MapperFactoryBean)
     }
 
     /**
@@ -235,23 +235,24 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
 
             // the mapper interface is the original class of the bean
             // but, the actual class of the bean is MapperFactoryBean
-
-            // 设置definition构造器的输入参数为definition.getBeanClassName()，这里就是org.mybatis.test.mapper
-            // 那么在getBean实例化时，通过反射调用构造器实例化时要将这个参数传进去
+            /**
+             * !!!!!修改构造器
+             * 设置definition构造器的输入参数为definition.getBeanClassName()，这里就是org.mybatis.test.mapper
+             * 那么在getBean实例化时，通过反射调用构造器实例化时要将这个参数传进去
+             */
             definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName); // issue #59
 
             /**
+             * !!!!!修改BeanClass
              * https://blog.csdn.net/weixin_45714179/article/details/103026370?utm_medium=distribute.pc_relevant.none-task-blog-title-2&spm=1001.2101.3001.4242
-             *
-             * 这里非常关键！！！ 在这里进行偷天换日 因为MapperFactoryBean实现了FactoryBean，
-             * // 修改definition对应的Class
-             * // 看过Spring源码的都知道，getBean()返回的就是BeanDefinitionHolder中beanClass属性对应的实例
-             * // 所以我们后面ac.getBean(UserMapper.class)的返回值也就是MapperFactoryBean的实例
-             * // 但是最终被注入到Spring容器的对象的并不是MapperFactoryBean的实例，根据名字看，我们就知道MapperFactoryBean实现了FactoryBean接口
-             * // 那么最终注入Spring容器的必定是从MapperFactoryBean的实例的getObject()方法中返回
+             * 这里非常关键！！！ 在这里进行偷天换日 因为MapperFactoryBean实现了FactoryBean，因为mapper接口不能被实例化
+             * 修改definition对应的Class
+             * 看过Spring源码的都知道，getBean()返回的就是BeanDefinitionHolder中beanClass属性对应的实例
+             * 所以我们后面ac.getBean(UserMapper.class)的返回值也就是MapperFactoryBean的实例
+             * 但是最终被注入到Spring容器的对象的并不是MapperFactoryBean的实例，根据名字看，我们就知道MapperFactoryBean实现了FactoryBean接口
+             * 那么最终注入Spring容器的必定是从MapperFactoryBean的实例的getObject()方法中返回
              */
             definition.setBeanClass(this.mapperFactoryBeanClass);
-            // definition.setBeanClass(UserMappper.class); // 不能使用UserMappper
             definition.getPropertyValues().add("addToConfig", this.addToConfig);
 
             boolean explicitFactoryUsed = false;
@@ -261,7 +262,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
                 explicitFactoryUsed = true;
             } else if (this.sqlSessionFactory != null) {
                 //往definition设置属性值sqlSessionFactory，那么在MapperFactoryBean实例化后，
-                // 进行属性赋值时populateBean(beanName, mbd, instanceWrapper);，会通过反射调用sqlSessionFactory的set方法进行赋值
+                //进行属性赋值时populateBean(beanName, mbd, instanceWrapper);，会通过反射调用sqlSessionFactory的set方法进行赋值
                 //也就是在MapperFactoryBean创建实例后，要调用setSqlSessionFactory方法将sqlSessionFactory注入进MapperFactoryBean实例
                 definition.getPropertyValues().add("sqlSessionFactory", this.sqlSessionFactory);
                 explicitFactoryUsed = true;

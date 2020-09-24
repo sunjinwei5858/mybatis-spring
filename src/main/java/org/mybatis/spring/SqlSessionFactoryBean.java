@@ -608,6 +608,7 @@ public class SqlSessionFactoryBean implements FactoryBean<SqlSessionFactory>, In
     public SqlSessionFactory getObject() throws Exception {
         if (this.sqlSessionFactory == null) {
             // 返回 DefaultSqlSessionFactory 对象
+            System.out.println("3--SqlSessionFactoryBean---执行getObject()方法-调用afterPropertiesSet方法-创建SqlSessionFactory");
             afterPropertiesSet();
         }
 

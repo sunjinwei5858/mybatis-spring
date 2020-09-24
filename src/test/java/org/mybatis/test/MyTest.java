@@ -27,5 +27,10 @@ public class MyTest {
 
         userList.forEach(result -> System.out.println(result));*/
 
+        String[] beanDefinitionNames = annotationConfigApplicationContext.getBeanDefinitionNames();
+        for (String beanDefinitionName : beanDefinitionNames) {
+            System.out.println("==="+beanDefinitionName);
+        }
+
     }
 }

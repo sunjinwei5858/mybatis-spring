@@ -35,11 +35,12 @@ import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * 实现ImportBeanDefinitionRegistrar接口，同时依赖ClassPathMapperScanner获取候选bean定义!!!!!, 并对bean定义进行后处理；
- *
+ * <p>
  * A {@link ImportBeanDefinitionRegistrar} to allow annotation configuration of MyBatis mapper scanning. Using
  * an @Enable annotation allows beans to be registered via @Component configuration, whereas implementing
  * {@code BeanDefinitionRegistryPostProcessor} will work for XML configuration.
@@ -70,8 +71,9 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
      */
     @Override
     public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
-        AnnotationAttributes mapperScanAttrs = AnnotationAttributes.fromMap(importingClassMetadata
-                .getAnnotationAttributes(MapperScan.class.getName()));
+        // 获取@MapperScan注解的value值
+        Map<String, Object> annotationAttributeMap = importingClassMetadata.getAnnotationAttributes(MapperScan.class.getName());
+        AnnotationAttributes mapperScanAttrs = AnnotationAttributes.fromMap(annotationAttributeMap);
         System.out.println("1--MapperScannerRegistrar--执行registerBeanDefinitions---@MapperScan---begin");
         // 获取MapperScan 注解，如@MapperScan("com.chenhao.mapper")
         if (mapperScanAttrs != null) {
@@ -97,7 +99,7 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
             BeanDefinitionRegistry registry,
             String beanName
     ) {
-
+        // 这里获取的是MapperScannerConfigurer的bean定义
         BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(MapperScannerConfigurer.class);
         builder.addPropertyValue("processPropertyPlaceHolders", true);
 
@@ -160,13 +162,22 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
         builder.addPropertyValue("basePackage", StringUtils.collectionToCommaDelimitedString(basePackages));
 
         // !!!! 这里进行注册
+        // 此处的beanName： org.mybatis.test.config.MybatisConfig#MapperScannerRegistrar#0
+        // beanDefinition：Generic bean: class [org.mybatis.spring.mapper.MapperScannerConfigurer]; scope=; abstract=false; lazyInit=null; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; factoryBeanName=null; factoryMethodName=null; initMethodName=null; destroyMethodName=null
         registry.registerBeanDefinition(beanName, builder.getBeanDefinition());
 
     }
 
-    // 获取beanName ！！！！！
+    /**
+     * 这里就是加了@MapperScan注解的配置类的类名+MapperScannerRegistrar类名称，以 # 号拼接
+     * @param importingClassMetadata
+     * @param index
+     * @return
+     */
     private static String generateBaseBeanName(AnnotationMetadata importingClassMetadata, int index) {
-        return importingClassMetadata.getClassName() + "#" + MapperScannerRegistrar.class.getSimpleName() + "#" + index;
+        String s = importingClassMetadata.getClassName() + "#" + MapperScannerRegistrar.class.getSimpleName() + "#" + index;
+        System.out.println("--MapperScannerRegistrar generateBaseBeanName:  "+ s);
+        return s;
     }
 
     private static String getDefaultBasePackage(AnnotationMetadata importingClassMetadata) {

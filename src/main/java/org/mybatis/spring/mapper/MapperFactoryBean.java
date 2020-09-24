@@ -58,7 +58,9 @@ import static org.springframework.util.Assert.notNull;
 //继承SqlSessionDaoSupport、实现FactoryBean，那么最终注入Spring容器的对象要从getObject()中取
 public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements FactoryBean<T> {
 
-    // 这里其实就是mapper接口 使用这种将mapper传进来 这样MapperFactoryBean就不需要加@component注解 ！！！！ 奇妙
+    /**
+     * 这里其实就是mapper接口 使用这种将mapper传进来 这样MapperFactoryBean就不需要加@component注解 ！！！！ 奇妙
+     */
     private Class<T> mapperInterface;
 
     private boolean addToConfig = true;
@@ -67,9 +69,23 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
         // intentionally empty
     }
 
-    //构造器，在BeanDefinition中已经设置了构造器输入参数
-    //所以在通过反射调用构造器实例化时，会获取在BeanDefinition设置的构造器输入参数
-    //也就是对应得每个Mapper接口Class
+    /**
+     * 牛逼的设计闪光点！！！！
+     * 1。我们知道在ClassPathMapperScanner扫描的是我们的UserMapper，bean定义是接口类型的，但是接口是不能被实例化的，
+     * 所以ClassPathMapperScanner在扫描UserMapper之后马上处理bean定义，
+     * definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName);
+     * definition.setBeanClass(this.mapperFactoryBeanClass);
+     * 2。把UserMapper的bean定义修改成我们的MapperFactoryBean类型，最终实例化我们的UserMapper就是我们的MapperFactoryBean类型
+     * definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName);这个就是来指定我们的实例化MapperFactoryBean
+     * 的构造函数参数，这样做的目的就是 因为MapperFactoryBean是我们的FactoryBean对象，最终返回的是getObject(),而getObject()返回的是一个jdk动态代理对象
+     * 我们知道jdk动态代理需要传一个接口，UserMapper就是一个接口。所以这个设计非常棒！！！！
+     * <p>
+     * 构造器，在BeanDefinition中已经设置了构造器输入参数
+     * 所以在通过反射调用构造器实例化时，会获取在BeanDefinition设置的构造器输入参数
+     * 也就是对应得每个Mapper接口Class
+     *
+     * @param mapperInterface
+     */
     public MapperFactoryBean(Class<T> mapperInterface) {
         System.out.println("4--MapperFactoryBean构造初始化----" + mapperInterface);
         this.mapperInterface = mapperInterface;
@@ -99,15 +115,14 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
 
     /**
      * 最终注入Spring容器的就是这里的返回对象
-     * <p>
-     * 这里进行获取mapper，通过抽象父类SqlSessionDaoSupport的getSqlSession
+     * 这里进行获取mapper代理对象
+     * 1。通过抽象父类SqlSessionDaoSupport的getSqlSession--SqlSessionTemplate
+     * 2。通过SqlSessionTemplate获取mapperInterface的代理类
+     * 3。获取到Mapper接口的代理类后，就把这个Mapper的代理类对象注入Spring容器
      * {@inheritDoc}
      */
     @Override
     public T getObject() throws Exception {
-        //获取父类setSqlSessionFactory方法中创建的SqlSessionTemplate
-        //通过SqlSessionTemplate获取mapperInterface的代理类
-        //获取到Mapper接口的代理类后，就把这个Mapper的代理类对象注入Spring容器
         SqlSession sqlSession = getSqlSession();
         T mapper = sqlSession.getMapper(this.mapperInterface);
         System.out.println("4--MapperFactoryBean执行getObject()方法--" + mapper);
