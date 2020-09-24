@@ -189,13 +189,16 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
     }
 
     /**
-     * 重写了父类的doScan()方法，这里将mapper接口的bean定义进行注册.MapperFactoryBeans
+     * 重写了父类的doScan()方法，这里将mapper接口的bean定义进行注册.
+     * 由于接口不能被实例化，所以修改bean定义将
+     * MapperFactoryBeans
      * <p>
      * Calls the parent search that will search and register all the candidates.
      * Then the registered objects are post processed to set them as MapperFactoryBeans
      */
     @Override
     public Set<BeanDefinitionHolder> doScan(String... basePackages) {
+        System.out.println("2--ClassPathMapperScanner--执行doScan basePackages is " + Arrays.toString(basePackages));
         // 这里调用父类ClassPathBeanDefinitionScanner进行将mapper接口进行扫描生成代理对象
         Set<BeanDefinitionHolder> beanDefinitions = super.doScan(basePackages);
 
@@ -203,10 +206,11 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             LOGGER.warn(() -> "No MyBatis mapper was found in '" + Arrays.toString(basePackages)
                     + "' package. Please check your configuration.");
         } else {
-            // 处理扫描得到的BeanDefinitionHolder集合
+            /**
+             * ！！！进行修改beanDefinition的属性
+             */
             processBeanDefinitions(beanDefinitions);
         }
-
         return beanDefinitions; // (userMapper, MapperFactoryBean)
     }
 
@@ -218,7 +222,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
     private void processBeanDefinitions(Set<BeanDefinitionHolder> beanDefinitions) {
         AbstractBeanDefinition definition;
         BeanDefinitionRegistry registry = getRegistry();
-
+        // for循环
         for (BeanDefinitionHolder holder : beanDefinitions) {
             definition = (AbstractBeanDefinition) holder.getBeanDefinition();
             boolean scopedProxy = false;
@@ -285,6 +289,9 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
                 explicitFactoryUsed = true;
             }
 
+            /**
+             * 修改注入模型
+             */
             if (!explicitFactoryUsed) {
                 LOGGER.debug(() -> "Enabling autowire by type for MapperFactoryBean with name '" + holder.getBeanName() + "'.");
                 definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);

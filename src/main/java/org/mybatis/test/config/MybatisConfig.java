@@ -25,6 +25,7 @@ public class MybatisConfig {
      */
     @Bean
     public DataSource dataSource() {
+        System.out.println("3--DataSource通过@Bean方式注入----begin----");
         DriverManagerDataSource driverManagerDataSource = new DriverManagerDataSource();
         driverManagerDataSource.setDriverClassName("com.mysql.jdbc.Driver");
         driverManagerDataSource.setUrl("jdbc:mysql://localhost:3306/springbootdemo");
@@ -40,6 +41,7 @@ public class MybatisConfig {
      */
     @Bean
     public SqlSessionFactory sqlSessionFactoryBean() throws Exception {
+        System.out.println("3--SqlSessionFactory通过@Bean方式注入----begin----");
         SqlSessionFactoryBean sqlSessionFactoryBean = new SqlSessionFactoryBean();
         sqlSessionFactoryBean.setDataSource(dataSource());
         sqlSessionFactoryBean.setTypeAliasesPackage("org.mybatis.test.domain");

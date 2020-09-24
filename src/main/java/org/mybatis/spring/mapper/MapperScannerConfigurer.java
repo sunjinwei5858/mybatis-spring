@@ -42,8 +42,14 @@ import java.util.Optional;
 import static org.springframework.util.Assert.notNull;
 
 /**
- * MapperScannerConfigurer 类实现了 BeanDefinitionRegistryPostProcessor 接口，
- * 该接口中的 postProcessBeanDefinitionRegistry()方法会在系统初始化的过程中被调用
+ * 1。MapperScannerConfigurer 类实现了 BeanDefinitionRegistryPostProcessor接口，
+ *  该接口中的postProcessBeanDefinitionRegistry()方法会在系统初始化的过程中被调用
+ *  注意：
+ *  之前的版本是实现BeanFactoryPostProcessor接口进行修改bean定义，现在改成了BeanDefinitionRegistryPostProcessor接口，
+ *  其实BeanDefinitionRegistryPostProcessor继承了BeanFactoryPostProcessor接口
+ *
+ * 2。这里面会获取到在MapperScannerRegistrar已经注册好的bean定义对象中的propertyValues中的basePackage，将mapper包下面的接口注册为MapperFactoryBean
+ *
  * <p>
  * BeanDefinitionRegistryPostProcessor that searches recursively starting from a base package for interfaces and
  * registers them as {@code MapperFactoryBean}. Note that only interfaces with at least one method will be registered;
@@ -93,14 +99,23 @@ import static org.springframework.util.Assert.notNull;
 public class MapperScannerConfigurer
         implements BeanDefinitionRegistryPostProcessor, InitializingBean, ApplicationContextAware, BeanNameAware {
 
+    /**
+     * mapper接口下面的接口
+     */
     private String basePackage;
 
     private boolean addToConfig = true;
 
     private String lazyInitialization;
 
+    /**
+     * sqlSessionFactory
+     */
     private SqlSessionFactory sqlSessionFactory;
 
+    /**
+     * sqlSessionTemplate
+     */
     private SqlSessionTemplate sqlSessionTemplate;
 
     private String sqlSessionFactoryBeanName;
@@ -111,10 +126,16 @@ public class MapperScannerConfigurer
 
     private Class<?> markerInterface;
 
+    /**
+     * mapper接口没办法实例化 只能使用MapperFactoryBean
+     */
     private Class<? extends MapperFactoryBean> mapperFactoryBeanClass;
 
     private ApplicationContext applicationContext;
 
+    /**
+     * beanName
+     */
     private String beanName;
 
     private boolean processPropertyPlaceHolders;
@@ -312,11 +333,13 @@ public class MapperScannerConfigurer
     }
 
     /**
+     * 进行对@MapperScan注解里面的包进行判空
      * {@inheritDoc}
      */
     @Override
     public void afterPropertiesSet() throws Exception {
         notNull(this.basePackage, "Property 'basePackage' is required");
+        System.out.println("2--MapperScannerConfigurer--执行空的--afterPropertiesSet()");
     }
 
     /**
@@ -325,6 +348,7 @@ public class MapperScannerConfigurer
     @Override
     public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) {
         // left intentionally blank
+        System.out.println("2--MapperScannerConfigurer--BeanFactoryPostProcessors--执行空的--postProcessBeanFactory");
     }
 
     /**
@@ -337,11 +361,11 @@ public class MapperScannerConfigurer
      */
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
+        System.out.println("2--MapperScannerConfigurer--执行postProcessBeanDefinitionRegistry--begin");
         if (this.processPropertyPlaceHolders) {
-            // 系统初始化时会调用
+            // 先进行相关的属性配置 主要是@MapperScan注解中的包路径进行赋值
             processPropertyPlaceHolders();
         }
-        System.out.println("2--MapperScannerConfigurer--执行postProcessBeanDefinitionRegistry--ClassPathMapperScanner--开始scan--begin");
         // 创建ClassPathMapperScanner对象
         ClassPathMapperScanner scanner = new ClassPathMapperScanner(registry);
         scanner.setAddToConfig(this.addToConfig);
@@ -361,6 +385,9 @@ public class MapperScannerConfigurer
             scanner.setDefaultScope(defaultScope);
         }
         scanner.registerFilters();
+        /**
+         * 进行扫描basePackage
+         */
         scanner.scan(
                 StringUtils.tokenizeToStringArray(this.basePackage, ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS));
     }
@@ -385,14 +412,16 @@ public class MapperScannerConfigurer
             // property placeholder substitution. Instead, create a BeanFactory that just
             // contains this mapper scanner and post process the factory.
             DefaultListableBeanFactory factory = new DefaultListableBeanFactory();
+
             factory.registerBeanDefinition(beanName, mapperScannerBean);
 
             for (PropertyResourceConfigurer prc : prcs.values()) {
                 prc.postProcessBeanFactory(factory);
             }
-
+            /**
+             * 这里进行获取@MapperScan注解下的包
+             */
             PropertyValues values = mapperScannerBean.getPropertyValues();
-
             this.basePackage = getPropertyValue("basePackage", values);
             this.sqlSessionFactoryBeanName = getPropertyValue("sqlSessionFactoryBeanName", values);
             this.sqlSessionTemplateBeanName = getPropertyValue("sqlSessionTemplateBeanName", values);

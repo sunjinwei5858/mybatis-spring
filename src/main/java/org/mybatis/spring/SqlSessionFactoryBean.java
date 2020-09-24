@@ -460,7 +460,6 @@ public class SqlSessionFactoryBean implements FactoryBean<SqlSessionFactory>, In
         notNull(sqlSessionFactoryBuilder, "Property 'sqlSessionFactoryBuilder' is required");
         state((configuration == null && configLocation == null) || !(configuration != null && configLocation != null),
                 "Property 'configuration' and 'configLocation' can not specified with together");
-        System.out.println("3--SqlSessionFactoryBean---执行afterPropertiesSet方法--创建SqlSessionFactory");
         this.sqlSessionFactory = buildSqlSessionFactory();
     }
 
@@ -608,7 +607,6 @@ public class SqlSessionFactoryBean implements FactoryBean<SqlSessionFactory>, In
     public SqlSessionFactory getObject() throws Exception {
         if (this.sqlSessionFactory == null) {
             // 返回 DefaultSqlSessionFactory 对象
-            System.out.println("3--SqlSessionFactoryBean---执行getObject()方法-调用afterPropertiesSet方法-创建SqlSessionFactory");
             afterPropertiesSet();
         }
 
