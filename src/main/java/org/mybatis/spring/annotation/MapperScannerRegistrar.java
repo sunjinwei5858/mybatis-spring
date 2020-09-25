@@ -75,7 +75,8 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
         Map<String, Object> annotationAttributeMap = importingClassMetadata.getAnnotationAttributes(MapperScan.class.getName());
         AnnotationAttributes mapperScanAttrs = AnnotationAttributes.fromMap(annotationAttributeMap);
         System.out.println("1--MapperScannerRegistrar--执行registerBeanDefinitions---@MapperScan---begin");
-        // 获取MapperScan 注解，如@MapperScan("com.chenhao.mapper")
+        // 判断@MapperScan注解value值是否为空，如@MapperScan("com.chenhao.mapper")
+        // 如果value值不为空 注册MapperScannerConfigurer类bean定义
         if (mapperScanAttrs != null) {
             registerBeanDefinitions(
                     importingClassMetadata,
@@ -83,9 +84,12 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
                     registry,
                     generateBaseBeanName(importingClassMetadata, 0));
         }
+
+
     }
 
     /**
+     * 重载registerBeanDefinitions方法
      * 是为了注册MapperScannerConfigurer类的beanDefinition!!!!
      *
      * @param annoMeta
@@ -99,8 +103,9 @@ public class MapperScannerRegistrar implements ImportBeanDefinitionRegistrar, Re
             BeanDefinitionRegistry registry,
             String beanName
     ) {
-        // 这里是将MapperScannerConfigurer这个类进行bean定义
+        // 使用建造者模式这里是将MapperScannerConfigurer这个类进行bean定义
         BeanDefinitionBuilder builder = BeanDefinitionBuilder.genericBeanDefinition(MapperScannerConfigurer.class);
+
         builder.addPropertyValue("processPropertyPlaceHolders", true);
 
         Class<? extends Annotation> annotationClass = annoAttrs.getClass("annotationClass");

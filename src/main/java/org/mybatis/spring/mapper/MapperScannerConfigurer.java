@@ -386,7 +386,7 @@ public class MapperScannerConfigurer
         }
         scanner.registerFilters();
         /**
-         * 进行扫描basePackage
+         * 调用ClassPathMapperScanner的父类ClassPathBeanDefinitionScanner方法scan()进行扫描basePackage
          */
         scanner.scan(
                 StringUtils.tokenizeToStringArray(this.basePackage, ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS));
@@ -418,9 +418,6 @@ public class MapperScannerConfigurer
             for (PropertyResourceConfigurer prc : prcs.values()) {
                 prc.postProcessBeanFactory(factory);
             }
-            /**
-             * 这里进行获取@MapperScan注解下的包
-             */
             PropertyValues values = mapperScannerBean.getPropertyValues();
             this.basePackage = getPropertyValue("basePackage", values);
             this.sqlSessionFactoryBeanName = getPropertyValue("sqlSessionFactoryBeanName", values);
@@ -428,6 +425,9 @@ public class MapperScannerConfigurer
             this.lazyInitialization = getPropertyValue("lazyInitialization", values);
             this.defaultScope = getPropertyValue("defaultScope", values);
         }
+        /**
+         * 这里进行获取@MapperScan注解下的包
+         */
         this.basePackage = Optional.ofNullable(this.basePackage).map(getEnvironment()::resolvePlaceholders).orElse(null);
         this.sqlSessionFactoryBeanName = Optional.ofNullable(this.sqlSessionFactoryBeanName)
                 .map(getEnvironment()::resolvePlaceholders).orElse(null);

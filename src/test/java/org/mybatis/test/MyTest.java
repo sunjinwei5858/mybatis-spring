@@ -2,7 +2,12 @@ package org.mybatis.test;
 
 import org.junit.jupiter.api.Test;
 import org.mybatis.test.config.MybatisConfig;
+import org.mybatis.test.domain.User;
+import org.mybatis.test.mapper.UserMappper;
+import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+import java.util.List;
 
 public class MyTest {
 
@@ -11,7 +16,7 @@ public class MyTest {
 
         AnnotationConfigApplicationContext annotationConfigApplicationContext = new AnnotationConfigApplicationContext(MybatisConfig.class);
 
-       /* BeanDefinition sqlSessionFactoryBeanDefinition = annotationConfigApplicationContext.getBeanDefinition("sqlSessionFactoryBean");
+        BeanDefinition sqlSessionFactoryBeanDefinition = annotationConfigApplicationContext.getBeanDefinition("sqlSessionFactoryBean");
 
         System.out.println("sqlSessionFactory BeanDefinition: "+sqlSessionFactoryBeanDefinition);
 
@@ -23,14 +28,14 @@ public class MyTest {
 
         UserMappper userMappper = (UserMappper) annotationConfigApplicationContext.getBean("userMappper");
 
+        UserMappper userMappper02 = (UserMappper) annotationConfigApplicationContext.getBean("userMappper");
+
         List<User> userList = userMappper.findUserList();
 
-        userList.forEach(result -> System.out.println(result));*/
+        userList.forEach(result -> System.out.println(result));
 
-        String[] beanDefinitionNames = annotationConfigApplicationContext.getBeanDefinitionNames();
-        for (String beanDefinitionName : beanDefinitionNames) {
-            System.out.println("==="+beanDefinitionName);
-        }
+
+
 
     }
 }

@@ -50,6 +50,7 @@ public abstract class SqlSessionDaoSupport extends DaoSupport {
      */
     public void setSqlSessionFactory(SqlSessionFactory sqlSessionFactory) {
         if (this.sqlSessionTemplate == null || sqlSessionFactory != this.sqlSessionTemplate.getSqlSessionFactory()) {
+            System.out.println("--SqlSessionDaoSupport--创建SqlSessionTemplate");
             //创建一个SqlSessionTemplate并赋值给sqlSession
             this.sqlSessionTemplate = createSqlSessionTemplate(sqlSessionFactory);
         }
@@ -117,6 +118,7 @@ public abstract class SqlSessionDaoSupport extends DaoSupport {
     }
 
     /**
+     * 重写父类的方法
      * {@inheritDoc}
      */
     @Override

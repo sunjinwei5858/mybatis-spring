@@ -189,9 +189,10 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
     }
 
     /**
+     * 这里设计的也很精妙，在父类的scan()中需要调用doScan()方法，有很多段逻辑，其中有doScan()方法，
+     * 但是doScan()方法子类已经重写，所以会直接调用子类重写的doScan()方法，执行完然后再继续回到父类scan()继续完成后面的逻辑
      * 重写了父类的doScan()方法，这里将mapper接口的bean定义进行注册.
-     * 由于接口不能被实例化，所以修改bean定义将
-     * MapperFactoryBeans
+     * 由于接口不能被实例化，所以修改bean定义为MapperFactoryBean类型
      * <p>
      * Calls the parent search that will search and register all the candidates.
      * Then the registered objects are post processed to set them as MapperFactoryBeans
