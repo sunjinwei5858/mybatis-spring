@@ -50,6 +50,11 @@ import static org.springframework.util.Assert.notNull;
  *
  * 2。这里面会获取到在MapperScannerRegistrar已经注册好的bean定义对象中的propertyValues中的basePackage，将mapper包下面的接口注册为MapperFactoryBean
  *
+ * 3。!!!!!
+ *  MapperScannerConfigurer 这个类是如何注册到spring容器中去的呢？ 通过@MapperScan注解中的@Import注解导入一个实现了
+ *  ImportBeanDefinitionRegistrar接口的MapperScannerRegistrar，
+ *  重写了registerBeanDefinitions方法，然后将MapperScannerConfigurer这个类注册到bean定义中去的
+ *
  * <p>
  * BeanDefinitionRegistryPostProcessor that searches recursively starting from a base package for interfaces and
  * registers them as {@code MapperFactoryBean}. Note that only interfaces with at least one method will be registered;
