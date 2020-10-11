@@ -28,6 +28,7 @@ import static org.springframework.util.Assert.notNull;
  * mybatis的mapper接口和sqlSessionFactory都是通过实现FactoryBean接口，前者是泛型FactoryBean<T>，后者直接是FactoryBean<SqlSessionFactory>
  * 这样就可以注入多个mappers,还可以设置SqlSessionFactory属性
  * <p>
+ *     注意：spring容器初始化时，会将<mapper, MapperFactoryBean>注册到spring的
  * <p>
  * BeanFactory that enables injection of MyBatis mapper interfaces.
  * It can be set up with a SqlSessionFactory or a pre-configured SqlSessionTemplate.
@@ -76,8 +77,10 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
      * definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName);
      * definition.setBeanClass(this.mapperFactoryBeanClass);
      * 2。把UserMapper的bean定义修改成我们的MapperFactoryBean类型，最终实例化我们的UserMapper就是我们的MapperFactoryBean类型
-     * definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName);这个就是来指定我们的实例化MapperFactoryBean
-     * 的构造函数参数，这样做的目的就是 因为MapperFactoryBean是我们的FactoryBean对象，最终返回的是getObject(),而getObject()返回的是一个jdk动态代理对象
+     * definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName);
+     * 这个就是来指定我们的实例化MapperFactoryBean的构造函数参数，
+     * 这样做的目的就是因为MapperFactoryBean是我们的FactoryBean对象，
+     * 最终返回的是getObject(),而getObject()返回的是一个jdk动态代理对象
      * 我们知道jdk动态代理需要传一个接口，UserMapper就是一个接口。所以这个设计非常棒！！！！
      * <p>
      * 构造器，在BeanDefinition中已经设置了构造器输入参数

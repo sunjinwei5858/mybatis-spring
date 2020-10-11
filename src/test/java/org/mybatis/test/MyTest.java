@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.mybatis.test.config.MybatisConfig;
 import org.mybatis.test.domain.User;
 import org.mybatis.test.mapper.UserMappper;
-import org.springframework.beans.factory.config.BeanDefinition;
+import org.mybatis.test.service.UserService;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.util.List;
@@ -16,15 +16,6 @@ public class MyTest {
 
         AnnotationConfigApplicationContext annotationConfigApplicationContext = new AnnotationConfigApplicationContext(MybatisConfig.class);
 
-        BeanDefinition sqlSessionFactoryBeanDefinition = annotationConfigApplicationContext.getBeanDefinition("sqlSessionFactoryBean");
-
-        System.out.println("sqlSessionFactory BeanDefinition: "+sqlSessionFactoryBeanDefinition);
-
-
-        BeanDefinition userMappperBeanDefinition = annotationConfigApplicationContext.getBeanDefinition("userMappper");
-
-        System.out.println("userMappper beanDefinition : " + userMappperBeanDefinition);
-
 
         UserMappper userMappper = (UserMappper) annotationConfigApplicationContext.getBean("userMappper");
 
@@ -35,7 +26,15 @@ public class MyTest {
         userList.forEach(result -> System.out.println(result));
 
 
+        UserService userService = (UserService) annotationConfigApplicationContext.getBean("userService");
+
+
+
 
 
     }
+
+
+
+
 }

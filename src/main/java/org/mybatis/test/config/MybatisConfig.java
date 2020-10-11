@@ -4,11 +4,13 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 
 import javax.sql.DataSource;
+
 
 /**
  * 通过@Bean的方式这些bean都是spring产生的，属于beanfactory，
@@ -16,6 +18,7 @@ import javax.sql.DataSource;
  */
 @Configuration
 @MapperScan("org.mybatis.test.mapper") // 配置1
+@ComponentScan("org.mybatis.test.service")
 public class MybatisConfig {
 
     /**
@@ -54,7 +57,7 @@ public class MybatisConfig {
      * @return
      */
     @Bean
-    public DataSourceTransactionManager dataSourceTransactionManager() {
+    public DataSourceTransactionManager transactionManager() {
         DataSourceTransactionManager dataSourceTransactionManager = new DataSourceTransactionManager();
         dataSourceTransactionManager.setDataSource(dataSource());
         return dataSourceTransactionManager;

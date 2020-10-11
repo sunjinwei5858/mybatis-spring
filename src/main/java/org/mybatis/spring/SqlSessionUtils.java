@@ -58,12 +58,10 @@ public final class SqlSessionUtils {
      * Creates a new MyBatis {@code SqlSession} from the {@code SqlSessionFactory} provided as a parameter and using its
      * {@code DataSource} and {@code ExecutorType}
      *
-     * @param sessionFactory
-     *          a MyBatis {@code SqlSessionFactory} to create new sessions
+     * @param sessionFactory a MyBatis {@code SqlSessionFactory} to create new sessions
      * @return a MyBatis {@code SqlSession}
-     * @throws TransientDataAccessResourceException
-     *           if a transaction is active and the {@code SqlSessionFactory} is not using a
-     *           {@code SpringManagedTransactionFactory}
+     * @throws TransientDataAccessResourceException if a transaction is active and the {@code SqlSessionFactory} is not using a
+     *                                              {@code SpringManagedTransactionFactory}
      */
     public static SqlSession getSqlSession(SqlSessionFactory sessionFactory) {
         ExecutorType executorType = sessionFactory.getConfiguration().getDefaultExecutorType();
@@ -72,23 +70,19 @@ public final class SqlSessionUtils {
 
     /**
      * sqlSession是如何创建的?
-     *
+     * 因为TransactionSynchronizationManager内部维护了ThreadLocal 线程安全的
      * Gets an SqlSession from Spring Transaction Manager or creates a new one if needed.
      * Tries to get a SqlSession out of current transaction.
      * If there is not any, it creates a new one. Then, it synchronizes the SqlSession with the
      * transaction if Spring TX is active and <code>SpringManagedTransactionFactory</code> is configured as a transaction
      * manager.
      *
-     * @param sessionFactory
-     *          a MyBatis {@code SqlSessionFactory} to create new sessions
-     * @param executorType
-     *          The executor type of the SqlSession to create
-     * @param exceptionTranslator
-     *          Optional. Translates SqlSession.commit() exceptions to Spring exceptions.
+     * @param sessionFactory      a MyBatis {@code SqlSessionFactory} to create new sessions
+     * @param executorType        The executor type of the SqlSession to create
+     * @param exceptionTranslator Optional. Translates SqlSession.commit() exceptions to Spring exceptions.
      * @return an SqlSession managed by Spring Transaction Manager
-     * @throws TransientDataAccessResourceException
-     *           if a transaction is active and the {@code SqlSessionFactory} is not using a
-     *           {@code SpringManagedTransactionFactory}
+     * @throws TransientDataAccessResourceException if a transaction is active and the {@code SqlSessionFactory} is not using a
+     *                                              {@code SpringManagedTransactionFactory}
      * @see SpringManagedTransactionFactory
      */
     public static SqlSession getSqlSession(SqlSessionFactory sessionFactory, ExecutorType executorType,
@@ -99,12 +93,17 @@ public final class SqlSessionUtils {
 
         SqlSessionHolder holder = (SqlSessionHolder) TransactionSynchronizationManager.getResource(sessionFactory);
 
+        System.out.println("--getSqlSession---");
+
         SqlSession session = sessionHolder(executorType, holder);
+
+        System.out.println("--session is " + session);
+
         if (session != null) {
             return session;
         }
 
-        LOGGER.debug(() -> "Creating a new SqlSession");
+        System.out.println("Creating a new SqlSession");
         session = sessionFactory.openSession(executorType);
 
         //将创建的SqlSession对象放入TransactionSynchronizationManager内部的ThreadLocal中
@@ -114,20 +113,18 @@ public final class SqlSessionUtils {
     }
 
     /**
+     * 如果开启事务 那么会将sqlSession会话 缓存到threadLocalMap中
+     * <p>
      * Register session holder if synchronization is active (i.e. a Spring TX is active).
-     *
+     * <p>
      * Note: The DataSource used by the Environment should be synchronized with the transaction either through
      * DataSourceTxMgr or another tx synchronization. Further assume that if an exception is thrown, whatever started the
      * transaction will handle closing / rolling back the Connection associated with the SqlSession.
      *
-     * @param sessionFactory
-     *          sqlSessionFactory used for registration.
-     * @param executorType
-     *          executorType used for registration.
-     * @param exceptionTranslator
-     *          persistenceExceptionTranslator used for registration.
-     * @param session
-     *          sqlSession used for registration.
+     * @param sessionFactory      sqlSessionFactory used for registration.
+     * @param executorType        executorType used for registration.
+     * @param exceptionTranslator persistenceExceptionTranslator used for registration.
+     * @param session             sqlSession used for registration.
      */
     private static void registerSessionHolder(
             SqlSessionFactory sessionFactory,
@@ -135,6 +132,7 @@ public final class SqlSessionUtils {
             PersistenceExceptionTranslator exceptionTranslator,
             SqlSession session
     ) {
+        System.out.println("=======registerSessionHolder");
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             Environment environment = sessionFactory.getConfiguration().getEnvironment();
 
@@ -144,6 +142,8 @@ public final class SqlSessionUtils {
                 SqlSessionHolder holder = new SqlSessionHolder(session, executorType, exceptionTranslator);
 
                 TransactionSynchronizationManager.bindResource(sessionFactory, holder);
+
+                System.out.println("--TransactionSynchronizationManager--registerSessionHolder---");
 
                 TransactionSynchronizationManager.registerSynchronization(new SqlSessionSynchronization(holder, sessionFactory));
 
@@ -160,6 +160,7 @@ public final class SqlSessionUtils {
                 }
             }
         } else {
+            System.out.println("---synchronization is not active");
             LOGGER.debug(() -> "SqlSession [" + session
                     + "] was not registered for synchronization because synchronization is not active");
         }
@@ -183,14 +184,15 @@ public final class SqlSessionUtils {
     }
 
     /**
+     * 关闭sqlsession会话的逻辑
+     * 如果不是被事务管理 那么关闭会话 其实也就是关闭数据库连接；
+     * 如果是被事务管理，仅仅是更新引用，然后让spring回调close 当事务关闭的时候
      * Checks if {@code SqlSession} passed as an argument is managed by Spring {@code TransactionSynchronizationManager}
      * If it is not, it closes it, otherwise it just updates the reference counter and lets Spring call the close callback
      * when the managed transaction ends
      *
-     * @param session
-     *          a target SqlSession
-     * @param sessionFactory
-     *          a factory of SqlSession
+     * @param session        a target SqlSession
+     * @param sessionFactory a factory of SqlSession
      */
     public static void closeSqlSession(SqlSession session, SqlSessionFactory sessionFactory) {
         notNull(session, NO_SQL_SESSION_SPECIFIED);
@@ -210,10 +212,8 @@ public final class SqlSessionUtils {
      * 判断是否加了事务
      * Returns if the {@code SqlSession} passed as an argument is being managed by Spring
      *
-     * @param session
-     *          a MyBatis SqlSession to check
-     * @param sessionFactory
-     *          the SqlSessionFactory which the SqlSession was built with
+     * @param session        a MyBatis SqlSession to check
+     * @param sessionFactory the SqlSessionFactory which the SqlSession was built with
      * @return true if session is transactional, otherwise false
      */
     public static boolean isSqlSessionTransactional(SqlSession session, SqlSessionFactory sessionFactory) {

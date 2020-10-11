@@ -30,7 +30,8 @@ import java.util.Map;
 
 import static java.lang.reflect.Proxy.newProxyInstance;
 import static org.apache.ibatis.reflection.ExceptionUtil.unwrapThrowable;
-import static org.mybatis.spring.SqlSessionUtils.*;
+import static org.mybatis.spring.SqlSessionUtils.closeSqlSession;
+import static org.mybatis.spring.SqlSessionUtils.isSqlSessionTransactional;
 import static org.springframework.util.Assert.notNull;
 
 /**
@@ -129,7 +130,7 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
 
         notNull(sqlSessionFactory, "Property 'sqlSessionFactory' is required");
         notNull(executorType, "Property 'executorType' is required");
-
+        System.out.println("=======SqlSessionTemplate 构造方法....");
         this.sqlSessionFactory = sqlSessionFactory;
         this.executorType = executorType;
         this.exceptionTranslator = exceptionTranslator;
@@ -430,7 +431,6 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
     private class SqlSessionInterceptor implements InvocationHandler {
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            System.out.println("999999999999");
             // 获取一个sqlSession来执行proxy的method对应的SQL,
             // 每次调用都获取创建一个sqlSession线程局部变量，故不同线程相互不影响，在这里实现了SqlSessionTemplate的线程安全性
             SqlSession sqlSession = SqlSessionUtils.getSqlSession(
@@ -465,9 +465,10 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
                 }
                 throw unwrapped;
             } finally {
-                // ！！！！  sqlsession进行关闭
+                // ！！！！SqlSession会话关闭的逻辑：分为开启事务和不开启事务 如果是开启事务 那么进行update引用；如果不是事务 那么进行关闭
                 if (sqlSession != null) {
                     closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
+
                 }
             }
         }
