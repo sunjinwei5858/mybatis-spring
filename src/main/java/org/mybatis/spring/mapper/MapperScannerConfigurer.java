@@ -42,6 +42,20 @@ import java.util.Optional;
 import static org.springframework.util.Assert.notNull;
 
 /**
+ * 重点：我们用自己的话总结一下BeanFactoryPostProcessor的执行时机（不管内置的还是程序员提供）————
+ * Ⅰ：如果是直接实现BeanFactoryPostProcessor的类是在spring完成扫描类之后
+ * （所谓的扫描包括把类变成beanDefinition然后put到map之中），在实例化bean（第⑤步）之前执行；
+ *
+ * Ⅱ：如果是实现BeanDefinitionRegistryPostProcessor接口的类；
+ * 诚然这种也叫bean工厂后置处理器他的执行时机是在执行直接实现BeanFactoryPostProcessor的类之前，和扫描（上面①②③步）是同期执行；
+ * 假设你的程序扩展一个功能，需要在这个时期做某个功能则可以实现这个接口；
+ * 但是笔者至今没有遇到这样的需求，如果以后遇到或者看到再来补上；（
+ * 说明一下当笔者发表这篇博客有一个读者联系笔者说他看到了一个主流框架就是扩展了BeanDefinitionRegistryPostProcessor类，
+ * 瞬间笔者如久旱遇甘霖，光棍遇寡妇；遂立马请教；那位读者说mybatis的最新代码里面便是扩展这个类来实现的，
+ * 笔者记得以前mybatis是扩展没有用到这个接口，后来笔者看了一下最新的mybatis源码确实如那位读者所言，
+ * 在下一篇笔者分析主流框架如何扩展spring的时候更新）
+ *
+ *
  * 1。MapperScannerConfigurer 类实现了 BeanDefinitionRegistryPostProcessor接口，
  *  该接口中的postProcessBeanDefinitionRegistry()方法会在系统初始化的过程中被调用
  *  注意：
@@ -348,6 +362,9 @@ public class MapperScannerConfigurer
     }
 
     /**
+     *
+     * 这里是实现了根接口的后置处理器BeanFactoryPostProcessor，在此处没有进行任何处理
+     *
      * {@inheritDoc}
      */
     @Override
@@ -357,7 +374,9 @@ public class MapperScannerConfigurer
     }
 
     /**
-     * MapperScannerConfigurer 类实现了 BeanDefinitionRegistryPostProcessor 接口，=====>系统初始化时会调用，在BeanFactoryPostProcessors类之前
+     * 这里是实现了BeanDefinitionRegistryPostProcessor后置处理器接口，比BeanFactoryPostProcessor更先调用
+     * MapperScannerConfigurer 类实现了 BeanDefinitionRegistryPostProcessor 接口，=====>
+     * 系统初始化时会调用，在BeanFactoryPostProcessors类之前
      * 该接口中的 postProcessBeanDefinitionRegistry() 方法会在系统初始化的过程中被调用，
      * 该方法扫描了配置文件中配置的basePackage 下的所有 Mapper 类，最终生成 Spring 的 Bean 对象，注册到容器中。
      * {@inheritDoc}
