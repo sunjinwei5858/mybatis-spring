@@ -134,8 +134,13 @@ public class SqlSessionTemplate implements SqlSession, DisposableBean {
         this.sqlSessionFactory = sqlSessionFactory;
         this.executorType = executorType;
         this.exceptionTranslator = exceptionTranslator;
-        this.sqlSessionProxy = (SqlSession) newProxyInstance(SqlSessionFactory.class.getClassLoader(),
-                new Class[]{SqlSession.class}, new SqlSessionInterceptor());
+        /**
+         * SqlSessionInterceptor实现了动态代理，每次都是动态创建sqlSession
+         */
+        this.sqlSessionProxy = (SqlSession) newProxyInstance(
+                SqlSessionFactory.class.getClassLoader(),
+                new Class[]{SqlSession.class},
+                new SqlSessionInterceptor());
     }
 
     public SqlSessionFactory getSqlSessionFactory() {
