@@ -56,7 +56,6 @@ import static org.springframework.util.Assert.notNull;
  * @author Eduardo Macarron
  * @see SqlSessionTemplate
  */
-//继承SqlSessionDaoSupport、实现FactoryBean，那么最终注入Spring容器的对象要从getObject()中取
 public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements FactoryBean<T> {
 
     /**
@@ -71,7 +70,7 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
     }
 
     /**
-     * 牛逼的设计闪光点！！！！
+     * 牛逼的设计闪光点!!!!!
      * 1。我们知道在ClassPathMapperScanner扫描的是我们的UserMapper，bean定义是接口类型的，但是接口是不能被实例化的，
      * 所以ClassPathMapperScanner在扫描UserMapper之后马上处理bean定义，
      * definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName);
@@ -95,6 +94,12 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
     }
 
     /**
+     * 因为MapperFactoryBean继承了SqlSessionDaoSupport，
+     * SqlSessionDaoSupport又继承了DaoSupport，
+     * DaoSupport实现了InitializingBean接口的afterProperties方法，
+     * 在bean初始化第三阶段会执行： invokeInitMethods 其中就会去执行InitializingBean接口的afterProperties方法，
+     * 而checkDaoConfig方法是抽象父类DaoSupport的一个必须要子类进行重写的方法，在afterProperties方法中进行调用，这就完美的将mapper接口添加到configuration当中
+     *
      * 将mapper接口添加到configuration全局配置类中！！！
      * {@inheritDoc}
      */
