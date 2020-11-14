@@ -184,11 +184,13 @@ public final class SqlSessionUtils {
     }
 
     /**
-     * 关闭sqlsession会话的逻辑
+     * 关闭sqlsession会话的逻辑：【可以翻译英文注释或者点开源码】
      * 如果不是被事务管理 那么关闭会话 其实也就是关闭数据库连接；
-     * 如果是被事务管理，仅仅是更新引用，然后让spring回调close 当事务关闭的时候
+     * 如果是被事务管理，mybatis仅仅是更新引用。当事务关闭的时候，然后让spring回调close。
+     *
      * Checks if {@code SqlSession} passed as an argument is managed by Spring {@code TransactionSynchronizationManager}
-     * If it is not, it closes it, otherwise it just updates the reference counter and lets Spring call the close callback
+     * If it is not, it closes it,
+     * otherwise it just updates the reference counter and lets Spring call the close callback
      * when the managed transaction ends
      *
      * @param session        a target SqlSession
@@ -201,9 +203,15 @@ public final class SqlSessionUtils {
         SqlSessionHolder holder = (SqlSessionHolder) TransactionSynchronizationManager.getResource(sessionFactory);
         if ((holder != null) && (holder.getSqlSession() == session)) {
             LOGGER.debug(() -> "Releasing transactional SqlSession [" + session + "]");
+            /**
+             * 开启了事务 那么更新引用 referenceCount 减减操作，关闭的会话的操作让spring来进行
+             */
             holder.released();
         } else {
             LOGGER.debug(() -> "Closing non transactional SqlSession [" + session + "]");
+            /**
+             * 关闭session会话
+             */
             session.close();
         }
     }
