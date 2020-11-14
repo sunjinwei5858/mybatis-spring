@@ -1,17 +1,11 @@
 package org.mybatis.test.service;
 
-import org.mybatis.test.domain.User;
-import org.mybatis.test.mapper.UserMappper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Component
 public class UserService {
 
-    @Autowired
+   /* @Autowired
     private UserMappper userMappper;
 
     public List<User> queryUserList() {
@@ -22,5 +16,5 @@ public class UserService {
 
         return new ArrayList<>();
 
-    }
+    }*/
 }
