@@ -411,6 +411,7 @@ public class MapperScannerConfigurer
         scanner.registerFilters();
         /**
          * 调用ClassPathMapperScanner的父类ClassPathBeanDefinitionScanner方法scan()进行扫描basePackage
+         * 子类重写了doScan方法，进行修改bean定义，因为接口不能被实例化 beanClass进行偷天换日 换成MappperFactoryBean，牛逼的闪光点!!!!
          */
         scanner.scan(
                 StringUtils.tokenizeToStringArray(this.basePackage, ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS));

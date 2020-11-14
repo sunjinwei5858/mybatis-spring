@@ -40,6 +40,11 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
+ * spring提供的ClassPathBeanDefinitionScanner的一个扩展：mybatis的扫描器ClassPathMapperScanner继承了该类
+ *
+ * ClassPathMapperScanner重写了spring提供的ClassPathBeanDefinitionScanner的doScan方法，
+ *
+ *
  * A {@link ClassPathBeanDefinitionScanner} that registers Mappers by {@code basePackage}, {@code annotationClass}, or
  * {@code markerInterface}. If an {@code annotationClass} and/or {@code markerInterface} is specified, only the
  * specified types will be searched (searching for all interfaces will be disabled).
@@ -189,9 +194,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
     }
 
     /**
-     * 这里设计的也很精妙，在父类的scan()中需要调用doScan()方法，有很多段逻辑，其中有doScan()方法，
-     * 但是doScan()方法子类已经重写，所以会直接调用子类重写的doScan()方法，执行完然后再继续回到父类scan()继续完成后面的逻辑
-     * 重写了父类的doScan()方法，这里将mapper接口的bean定义进行注册.
+     * 这里doScan方法设计的也很精妙，利用父类去注册bean定义，自己来进行修改bean定义,进行偷天换日!!!!
      * 由于接口不能被实例化，所以修改bean定义为MapperFactoryBean类型
      * <p>
      * Calls the parent search that will search and register all the candidates.
@@ -208,7 +211,7 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
                     + "' package. Please check your configuration.");
         } else {
             /**
-             * ！！！进行修改beanDefinition的属性
+             * 进行修改beanDefinition的属性 偷天换日
              */
             processBeanDefinitions(beanDefinitions);
         }
@@ -241,10 +244,17 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
             // the mapper interface is the original class of the bean
             // but, the actual class of the bean is MapperFactoryBean
             /**
-             * !!!!!修改构造器
+             * 牛逼的闪光点：和MapperFactoryBean中闪光点注释 照相呼应
+             *
+             * 通过构造注入【这里也经过了版本的迭代，之前是属性注入】
+             * definition.getPropertyValues().add("mapperInterface", definition.getBeanClassName());
+             *
+             * 后面因为MapperFactoryBean增加了mapperInterface的构造注入，所以这里修改为了
+             * definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName); // issue #59
              * 设置definition构造器的输入参数为definition.getBeanClassName()，这里就是org.mybatis.test.mapper
              * 那么在getBean实例化时，通过反射调用构造器实例化时要将这个参数传进去
              */
+            // definition.getPropertyValues().add("mapperInterface", definition.getBeanClassName()); // 之前MapperFactoryBean还不能构造注入
             definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName); // issue #59
 
             /**
@@ -266,9 +276,11 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
                         new RuntimeBeanReference(this.sqlSessionFactoryBeanName));
                 explicitFactoryUsed = true;
             } else if (this.sqlSessionFactory != null) {
-                //往definition设置属性值sqlSessionFactory，那么在MapperFactoryBean实例化后，
-                //进行属性赋值时populateBean(beanName, mbd, instanceWrapper);，会通过反射调用sqlSessionFactory的set方法进行赋值
-                //也就是在MapperFactoryBean创建实例后，要调用setSqlSessionFactory方法将sqlSessionFactory注入进MapperFactoryBean实例
+                /**
+                 * 往definition设置属性值sqlSessionFactory，那么在MapperFactoryBean实例化后，
+                 * 进行属性赋值时populateBean(beanName, mbd, instanceWrapper);，会通过反射调用sqlSessionFactory的set方法进行赋值
+                 * 也就是在MapperFactoryBean创建实例后，要调用setSqlSessionFactory方法将sqlSessionFactory注入进MapperFactoryBean实例
+                 */
                 definition.getPropertyValues().add("sqlSessionFactory", this.sqlSessionFactory);
                 explicitFactoryUsed = true;
             }
