@@ -119,7 +119,7 @@ public class MapperScannerConfigurer
         implements BeanDefinitionRegistryPostProcessor, InitializingBean, ApplicationContextAware, BeanNameAware {
 
     /**
-     * mapper接口下面的接口
+     * basePackage 配置包扫描的包名
      */
     private String basePackage;
 
